@@ -1,0 +1,510 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Custom messanger</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.0/handlebars.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.1.1/list.min.js"></script>
+    <!--    libs for stomp and sockjs-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.4.0/sockjs.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <!--    end libs for stomp and sockjs-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet"
+          type="text/css">
+    <link href="../static/style.css" rel="stylesheet">
+</head>
+
+<body>
+<div class="container clearfix">
+    <div class="people-list" id="people-list">
+        <div class="search">
+            <input id="userName" placeholder="search" type="text" th:value="${me}" disabled />
+
+        </div>
+        <ul class="list" id="usersList">
+            <li th:each="user : ${userList}" th:text="${user}" class="friend" ></li>
+
+
+        </ul>
+    </div>
+
+    <div class="chat">
+        <div class="chat-header clearfix">
+            <img alt="avatar" height="55px"
+                 src=""
+                 width="55px"/>
+
+            <div class="chat-about">
+                <div class="chat-with" id="selectedUserId"></div>
+                <div class="chat-num-messages"></div>
+            </div>
+            <i class="fa fa-star"></i>
+        </div> <!-- end chat-header -->
+
+        <div class="chat-history">
+            <ul>
+
+            </ul>
+
+        </div> <!-- end chat-history -->
+
+        <div class="chat-message clearfix">
+            <textarea id="message-to-send" name="message-to-send" placeholder="Type your message" rows="3"></textarea>
+
+            <i class="fa fa-file-o"></i> &nbsp;&nbsp;&nbsp;
+            <i class="fa fa-file-image-o"></i>
+
+            <button id="sendBtn" onclick="sendMessage()" th:name="${me}">Send</button>
+
+        </div> <!-- end chat-message -->
+
+    </div> <!-- end chat -->
+
+</div> <!-- end container -->
+
+<script id="message-template" type="text/x-handlebars-template">
+    <li class="clearfix">
+        <div class="message-data align-right">
+            <span class="message-data-time">{{time}}, Today</span> &nbsp; &nbsp;
+            <span class="message-data-name">You</span> <i class="fa fa-circle me"></i>
+        </div>
+        <div class="message other-message float-right">
+            {{messageOutput}}
+        </div>
+    </li>
+</script>
+
+<script id="message-response-template" type="text/x-handlebars-template">
+    <li>
+        <div class="message-data">
+            <span class="message-data-name"><i class="fa fa-circle online"></i> {{userName}}</span>
+            <span class="message-data-time">{{time}}, Today</span>
+        </div>
+        <div class="message my-message">
+            {{response}}
+        </div>
+    </li>
+</script>
+
+<!--<script src="js/custom.js"></script>-->
+<!--<script src="js/chat.js"></script>-->
+</body>
+<script>
+    function connect(id) {
+        var socket = new SockJS('/webs');
+        var chat = document.querySelector('#message-to-send')
+        chat.idChats=id
+        var requestOptions = {
+            method: 'GET',
+            redirect: 'follow'
+        };
+
+        fetch(`http://localhost:8080/api/chats/get/message?id=${id}`, requestOptions)
+            .then(response => response.json())
+            .then(result => showMessageOutput(result))
+            .catch(error => console.log('error', error));
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function(frame) {
+            // setConnected(true);
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/topic/99', function(messageOutput) {
+                console.log(messageOutput)
+                addMessage(JSON.parse(messageOutput.body))
+                // showMessageOutput(JSON.parse(messageOutput.body));
+            });
+
+        });
+
+
+    }
+    function disconnect() {
+        if(stompClient != null) {
+            stompClient.disconnect();
+        }
+        setConnected(false);
+        console.log("Disconnected");
+    }
+    function sendMessage() {
+        let text = document.querySelector('#message-to-send').value;
+        let id = document.querySelector('#message-to-send').idChats;
+
+        stompClient.send("/app/webs", {},
+            JSON.stringify({'chatId':id, 'text':text,'author':btn.name}));
+        document.querySelector('#message-to-send').value=""
+    }
+    function addMessage(messageOutput) {
+        let response = document.querySelector('.chat-history').children[0];
+        console.log(messageOutput,"adasd",messageOutput.size)
+        if (messageOutput.author==btn.name){
+            response.innerHTML+=` <li class="clearfix">
+                        <div class="message-data align-right">
+                            <span class="message-data-name">${messageOutput.author}</span> <i class="fa fa-circle me"></i>
+                        </div>
+                        <div class="message other-message float-right">
+                            ${messageOutput.text}
+                        </div>
+                    </li>`
+
+        }else{
+            response.innerHTML+=`<li>
+        <div class="message-data">
+            <span class="message-data-name"><i class="fa fa-circle online"></i> ${messageOutput.author}</span>
+        </div>
+        <div class="message my-message">
+            ${messageOutput.text}
+        </div>
+    </li>`}
+    }
+    // function showMessageOutput(messageOutput) {
+    //     let response = document.querySelector('.chat-history');
+    //     console.log(messageOutput,"adasd",messageOutput.size)
+    //
+    //     for (const masKey of messageOutput) {
+    //         if (masKey.author==btn.name){
+    //             response.appendChild(document.createElement("li",
+    //             ));
+    //             console.log(masKey)
+    //         }else{
+    //
+    //         }
+    //     }
+    //     for (const it in messageOutput ){
+    //         response.children[it].textContent=messageOutput[it].text
+    //         response.children[it].className="message"
+    //     }
+    //
+    // }
+    function showMessageOutput(messageOutput) {
+        let response = document.querySelector('.chat-history').children[0];
+        console.log(messageOutput,"adasd",messageOutput.size)
+
+        for (let index in messageOutput) {
+            if (messageOutput[index].author==btn.name){
+                response.innerHTML+=` <li class="clearfix">
+                        <div class="message-data align-right">
+                            <span class="message-data-name">${messageOutput[index].author}</span> <i class="fa fa-circle me"></i>
+                        </div>
+                        <div class="message other-message float-right">
+                            ${messageOutput[index].text}
+                        </div>
+                    </li>`
+
+            }else{
+                response.innerHTML+=`<li>
+        <div class="message-data">
+            <span class="message-data-name"><i class="fa fa-circle online"></i> ${messageOutput[index].author}</span>
+        </div>
+        <div class="message my-message">
+            ${messageOutput[index].text}
+        </div>
+    </li>`}
+        }
+        // for (let it in messageOutput ){
+        //     response.children[it].textContent=messageOutput[it].text
+        //     response.children[it].className="message"
+        // }
+
+    }
+
+    // <li className="clearfix">
+    //     <div className="message-data align-right">
+    //
+    //         <span className="message-data-name">{messageOutput[index].author}</span> <i className="fa fa-circle me"></i>
+    //     </div>
+    //     <div className="message other-message float-right">
+    //         {messageOutput[index].text}
+    //     </div>
+    // </li>
+
+    const me = document.querySelectorAll("#userName")
+    const friends = document.querySelectorAll(".friend")
+    const btn=document.querySelector("#sendBtn")
+    console.log(btn.name)
+    friends.forEach(e=>{
+        e.addEventListener("click",ev => {
+
+            // disconnect()
+            var requestOptions = {
+                method: 'GET',
+                redirect: 'follow'
+            };
+            name=ev.target.textContent;
+
+            fetch(`http://localhost:8080/api/chats/create?name=${name}`, requestOptions)
+                .then(response => response.text())
+                .then(result => connect(result))
+                .catch(error => console.log('error', error));
+            // connect()
+        })
+
+    })
+    function checkFriend(event){
+        console.log(event.target.value)
+
+
+        // return  new Promise(()=>{
+        //     axios.post('http://localhost:8080/api/chats/create', { name })
+        //         .then(response => {
+        //             // Обработка успешного ответа
+        //             resolve(response.data);
+        //         })
+        //         .catch(error => {
+        //             // Обработка ошибки
+        //             reject(error);
+        //         });
+        //
+        // })
+    }
+</script>
+<style>
+    @import url(https://fonts.googleapis.com/css?family=Lato:400,700);
+
+    *, *:before, *:after {
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #C5DDEB;
+        font: 14px/20px "Lato", Arial, sans-serif;
+        padding: 40px 0;
+        color: white;
+    }
+
+    .container {
+        margin: 0 auto;
+        width: 750px;
+        background: #444753;
+        border-radius: 5px;
+    }
+
+    .people-list {
+        width: 260px;
+        float: left;
+    }
+
+    .people-list .search {
+        padding: 20px;
+    }
+
+    .people-list input {
+        border-radius: 3px;
+        border: none;
+        padding: 14px;
+        color: #e1e1e1;
+        background: #6A6C75;
+        width: 90%;
+        font-size: 14px;
+    }
+
+    .people-list .fa-search {
+        position: relative;
+        left: -25px;
+    }
+
+    .people-list ul {
+        padding: 20px;
+        height: 770px;
+    }
+
+    .people-list ul li {
+        padding-bottom: 20px;
+    }
+
+    .people-list img {
+        float: left;
+    }
+
+    .people-list .about {
+        float: left;
+        margin-top: 8px;
+    }
+
+    .people-list .about {
+        padding-left: 8px;
+    }
+
+    .people-list .status {
+        color: #92959E;
+    }
+
+    .chat {
+        width: 490px;
+        float: left;
+        background: #F2F5F8;
+        border-top-right-radius: 5px;
+        border-bottom-right-radius: 5px;
+        color: #434651;
+    }
+
+    .chat .chat-header {
+        padding: 20px;
+        border-bottom: 2px solid white;
+    }
+
+    .chat .chat-header img {
+        float: left;
+    }
+
+    .chat .chat-header .chat-about {
+        float: left;
+        padding-left: 10px;
+        margin-top: 6px;
+    }
+
+    .chat .chat-header .chat-with {
+        font-weight: bold;
+        font-size: 16px;
+    }
+
+    .chat .chat-header .chat-num-messages {
+        color: #92959E;
+    }
+
+    .chat .chat-header .fa-star {
+        float: right;
+        color: #D8DADF;
+        font-size: 20px;
+        margin-top: 12px;
+    }
+
+    ul {
+        list-style-type: none;
+    }
+
+    .chat .chat-history {
+        padding: 30px 30px 20px;
+        border-bottom: 2px solid white;
+        overflow-y: scroll;
+        height: 575px;
+    }
+
+    .chat .chat-history .message-data {
+        margin-bottom: 15px;
+    }
+
+    .chat .chat-history .message-data-time {
+        color: #a8aab1;
+        padding-left: 6px;
+    }
+
+    .chat .chat-history .message {
+        color: white;
+        padding: 18px 20px;
+        line-height: 26px;
+        font-size: 16px;
+        border-radius: 7px;
+        margin-bottom: 30px;
+        width: 90%;
+        position: relative;
+    }
+
+    .chat .chat-history .message:after {
+        bottom: 100%;
+        left: 7%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+        border-bottom-color: #86BB71;
+        border-width: 10px;
+        margin-left: -10px;
+    }
+
+    .chat .chat-history .my-message {
+        background: #86BB71;
+    }
+
+    .chat .chat-history .other-message {
+        background: #94C2ED;
+    }
+
+    .chat .chat-history .other-message:after {
+        border-bottom-color: #94C2ED;
+        left: 93%;
+    }
+
+    .chat .chat-message {
+        padding: 30px;
+    }
+
+    .chat .chat-message textarea {
+        width: 100%;
+        border: none;
+        padding: 10px 20px;
+        font: 14px/22px "Lato", Arial, sans-serif;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        resize: none;
+    }
+
+    .chat .chat-message .fa-file-o, .chat .chat-message .fa-file-image-o {
+        font-size: 16px;
+        color: gray;
+        cursor: pointer;
+    }
+
+    .chat .chat-message button {
+        float: right;
+        color: #94C2ED;
+        font-size: 16px;
+        text-transform: uppercase;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+        background: #F2F5F8;
+    }
+
+    .chat .chat-message button:hover {
+        color: #75b1e8;
+    }
+    .friend{
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .friend:hover{
+        background: #585c6b;
+
+    }
+
+    .online, .offline, .me {
+        margin-right: 3px;
+        font-size: 10px;
+    }
+
+    .online {
+        color: #86BB71;
+    }
+
+    .offline {
+        color: #E38968;
+    }
+
+    .me {
+        color: #94C2ED;
+    }
+
+    .align-left {
+        text-align: left;
+    }
+
+    .align-right {
+        text-align: right;
+    }
+
+    .float-right {
+        float: right;
+    }
+
+    .clearfix:after {
+        visibility: hidden;
+        display: block;
+        font-size: 0;
+        content: " ";
+        clear: both;
+        height: 0;
+    }
+
+</style>
+</html>
