@@ -134,6 +134,8 @@
     }
     function addMessage(messageOutput) {
         let response = document.querySelector('.chat-history').children[0];
+        if (response.innerHTML=="  У вас нет переписки с этим пользователем")
+            response.innerHTML=""
         console.log(messageOutput,"adasd",messageOutput.size)
         if (messageOutput.author==btn.name){
             response.innerHTML+=` <li class="clearfix">
@@ -177,6 +179,9 @@
     function showMessageOutput(messageOutput) {
         let response = document.querySelector('.chat-history').children[0];
         console.log(messageOutput,"adasd",messageOutput.size)
+        response.innerHTML=""
+        if (messageOutput.length==0)
+            response.innerHTML="  У вас нет переписки с этим пользователем"
 
         for (let index in messageOutput) {
             if (messageOutput[index].author==btn.name){

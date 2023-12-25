@@ -23,24 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequestMapping("/")
 @RequiredArgsConstructor
 public class WebsController {
-
-    private final AtomicInteger userId = new AtomicInteger(0);
     private final ChatService chatService;
     private final MessageService messageService;
-
-    @GetMapping("/")
-    @ResponseBody
-    public String index() {
-        return "Для подписки на топик перейдите по эндпоинту /webs";
-    }
-
-    @GetMapping("/webs")
-    public ModelAndView webs() {
-
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("webs.html");
-        return modelAndView;
-    }
 
     @MessageMapping("/webs")
     @SendTo("/topic/99")
@@ -57,7 +41,6 @@ public class WebsController {
 
         chat.getMessageList().add(message1);
         chatService.save(chat);
-        System.out.println("assdsdd");
 //        List<String> messageList = chat.getMessageList().stream().map(item->item.getText()).toList();
 //        model.addAttribute("message",messageList);
 

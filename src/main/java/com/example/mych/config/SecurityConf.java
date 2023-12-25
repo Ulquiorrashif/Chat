@@ -24,8 +24,8 @@ public class SecurityConf {
     @Bean
     public SecurityFilterChain securityFilterChain (HttpSecurity httpSecurity) throws Exception {
         httpSecurity.csrf(AbstractHttpConfigurer::disable).cors(e->e.disable())
-                .authorizeHttpRequests(request->request.requestMatchers(antMatcher("/static/style.css"),antMatcher("/api/users/get"),antMatcher("/api/users/create"),antMatcher("/api/users/create/{id}"),
-//                        antMatcher("/api/chats/create"),
+                .authorizeHttpRequests(request->request.requestMatchers(antMatcher("/static/style.css"),
+                        antMatcher("/api/users/get"),antMatcher("/api/users/create"),antMatcher("/api/users/create/{id}"),
                         antMatcher("/regPage")).permitAll().anyRequest().authenticated())
                 .formLogin((form) -> form
                         .loginPage("/loginPage")

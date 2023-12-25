@@ -30,8 +30,6 @@ public class Users implements UserDetails {
     @ManyToMany()
     private  List<Chat> chatList = new ArrayList<>();
 
-
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return null;
